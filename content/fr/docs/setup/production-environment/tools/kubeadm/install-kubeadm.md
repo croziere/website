@@ -29,15 +29,15 @@ Pour savoir comment créer un cluster avec kubeadm une fois l'installation termi
 * 2 GB de RAM ou plus par machine (une valeur en deçà ne laissera pas assez de ressources pour vos applications)
 * 2 CPUs ou plus
 * Connectivité réseau complète entre toutes les machines du cluster (que le réseau soit privé ou publique)
-* Hostname, adresse MAC et product_uuid unique pour chaque noeud. Plus d'informations [ici](#verify-mac-address).
-* Les ports requis sont ouverts sur vos machines. Plus d'informations [ici](#check-required-ports)
+* Hostname, adresse MAC et product_uuid unique pour chaque noeud. Plus d'informations [ici](#vérifier-adresse-mac).
+* Les ports requis sont ouverts sur vos machines. Plus d'informations [ici](#vérifier-ports)
 * Swap désactivé. Il est NÉCESSAIRE que le swap soit désactivé afin que le kubelet fonctionne correctement.
 
 
 
 <!-- steps -->
 
-## Vérifier l'unicité que l'adresse MAC et du product_uuid pour chaque noeud {#verify-mac-address}
+## Vérifier l'unicité que l'adresse MAC et du product_uuid pour chaque noeud {#vérifier-adresse-mac}
 
 * Vous pouvez obtenir l'adresse MAC de l'interface réseau via les commandes `ip link` ou `ifconfig -a`
 * Le product_uuid peut être obtenu via la commande `sudo cat /sys/class/dmi/id/product_uuid`
@@ -67,7 +67,7 @@ sudo sysctl --system
 
 Pour plus de d'informations, consultez la page [Pré-requis plugin réseau](/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/#network-plugin-requirements).
 
-## Vérifier les ports
+## Vérifier les ports {#vérifier-ports}
 
 ### Noeud(s) du plan de contrôle
 
@@ -86,7 +86,7 @@ Pour plus de d'informations, consultez la page [Pré-requis plugin réseau](/doc
 | TCP       | Entrée    | 10250           | API Kubelet           | Lui même, plan de contrôle |
 | TCP       | Entrée    | 30000-32767     | Services NodePort†    | All                        |
 
-† Plage de ports par défaut pour les [Services NodePort](/docs/concepts/services-networking/service/).
+† Plage de ports par défaut pour les [Services NodePort](/fr/docs/concepts/services-networking/service/).
 
 Les ports marqués d'une * sont modifiables, vous devez donc vous assurer que 
 chaque port personalisé que vous indiquez soit ouverts également.
@@ -98,10 +98,10 @@ Le plugin du réseau de pod que vous utilisez (voir ci-dessous) peut également 
 de certains ports. Puisque cela dépend du plugin réseau, veuillez consulter la 
 documentation pour le plugin vous concernant.
 
-## Installer l'environnement d'éxecution des conteneurs {#installing-runtime}
+## Installer l'environnement d'éxecution des conteneurs {#installer-environnement}
 
 Pour éxecuter des conteneurs dans les Pods, Kubernetes utilise un
-{{< glossary_tooltip term_id="container-runtime" text="container runtime" >}}.
+{{< glossary_tooltip term_id="container-runtime" text="environnement d'éxecution de conteneurs" >}}.
 
 {{< tabs name="container_runtime" >}}
 {{% tab name="noeuds Linux" %}}
@@ -114,7 +114,7 @@ Si vous ne spécifiez pas d'environnement, kubeadm va automatiquement essayer de
 un environnement installé en scannant une list de sockets Unix bien définie.
 Le tableau suivant liste les environnements et le chemin de leur socket associé :
 
-{{< table caption = "Container runtimes and their socket paths" >}}
+{{< table caption = "Environnements d'éxecution de conteneurs et leur socket associée" >}}
 | Environnement | Chemin du socket Unix             |
 |---------------|-----------------------------------|
 | Docker        | `/var/run/docker.sock`            |
@@ -161,7 +161,7 @@ est accepté, mais la version du kubelet ne peut jamais être supérieure à la 
 Par exemple, les kubelets exécutant la version 1.7.0 seront entièrement compatibles avec la verion 1.8.0 du serveur d'API,
 mais le contraire ne sera pas possible.
 
-Pour plus d'informations sur l'installation de `kubectl`, rendez vous sur la page [installer et configurer kubectl](/docs/tasks/tools/install-kubectl/).
+Pour plus d'informations sur l'installation de `kubectl`, rendez vous sur la page [installer et configurer kubectl](/fr/docs/tasks/tools/install-kubectl/).
 
 {{< warning >}}
 Ces instructions bloquent les paquets Kubernetes des mises à jour système.
@@ -289,7 +289,7 @@ kind: KubeletConfiguration
 cgroupDriver: <value>
 ```
 
-Pour plus d'informations, rendez vous sur la pahe [utiliser kubeadm init avec un fichier de configuration](/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file).
+Pour plus d'informations, rendez vous sur la page [utiliser kubeadm init avec un fichier de configuration](/fr/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file).
 
 Il faut noter que vous devez réaliser ce changement **seulement** si le driver cgroup de votre CRI
 n'est pas `cgroupfs`, car c'est déjà la valeur par défaut du kubelet.
