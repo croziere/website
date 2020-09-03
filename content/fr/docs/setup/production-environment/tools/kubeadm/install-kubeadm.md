@@ -208,17 +208,17 @@ sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
 sudo systemctl enable --now kubelet
 ```
 
-  **Notes:**
+  **Notes :**
+  
+  - L'activation du mode permissif de SELinux via `setenforce 0` et `sed ...` désactivera SELinux.
+    C'est nécessaire afin que les processus des conteneurs aient accès au système de fichiers de l'hôte, ce qui est requis pas les réseaux de pod par exemple.
+    Vous devez activer ce mode en attendant que le support de SELinux soit amélioré dans le kubelet.
 
-  - Setting SELinux in permissive mode by running `setenforce 0` and `sed ...` effectively disables it.
-    This is required to allow containers to access the host filesystem, which is needed by pod networks for example.
-    You have to do this until SELinux support is improved in the kubelet.
-
-  - You can leave SELinux enabled if you know how to configure it but it may require settings that are not supported by kubeadm.
+  - Vous pouvez laisser SELinux activé si vous savez comment le configurer mais cela peut nécessiter des paramétrages non supportés par kubeadm.
 
 {{% /tab %}}
 {{% tab name="Fedora CoreOS ou Flatcar Container Linux" %}}
-Install CNI plugins (required for most pod network):
+Istaller le plugin CNI (nécessaire pour la plupar des réseaux de pod) : 
 
 ```bash
 CNI_VERSION="v0.8.2"
@@ -226,11 +226,11 @@ sudo mkdir -p /opt/cni/bin
 curl -L "https://github.com/containernetworking/plugins/releases/download/${CNI_VERSION}/cni-plugins-linux-amd64-${CNI_VERSION}.tgz" | sudo tar -C /opt/cni/bin -xz
 ```
 
-Define the directory to download command files  
+Définissez le dossier où télécharger les fichiers de commandes
 
 {{< note >}}
-The DOWNLOAD_DIR variable must be set to a writable directory.
-If you are running Flatcar Container Linux, set DOWNLOAD_DIR=/opt/bin.
+La variable DOWNLOAD_DIR doit pointer vers un dossier accessible en écriture.
+Si vous utilisez Flatcar Container Linux, utilisez DOWNLOAD_DIR=/opt/bin.
 {{< /note >}}
 
 ```bash
@@ -238,14 +238,14 @@ DOWNLOAD_DIR=/usr/local/bin
 sudo mkdir -p $DOWNLOAD_DIR
 ```
 
-Install crictl (required for kubeadm / Kubelet Container Runtime Interface (CRI))
+Installer crictl (nécessaire pour kubeadm / Kubelet Container Runtime Interface (CRI))
 
 ```bash
 CRICTL_VERSION="v1.17.0"
 curl -L "https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTL_VERSION}/crictl-${CRICTL_VERSION}-linux-amd64.tar.gz" | sudo tar -C $DOWNLOAD_DIR -xz
 ```
 
-Install `kubeadm`, `kubelet`, `kubectl` and add a `kubelet` systemd service:
+Installer `kubeadm`, `kubelet`, `kubectl` et ajouter `kubelet` en tant que service systemd:
 
 ```bash
 RELEASE="$(curl -sSL https://dl.k8s.io/release/stable.txt)"
@@ -259,16 +259,16 @@ sudo mkdir -p /etc/systemd/system/kubelet.service.d
 curl -sSL "https://raw.githubusercontent.com/kubernetes/release/${RELEASE_VERSION}/cmd/kubepkg/templates/latest/deb/kubeadm/10-kubeadm.conf" | sed "s:/usr/bin:${DOWNLOAD_DIR}:g" | sudo tee /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 ```
 
-Enable and start `kubelet`:
+Activer et démarrer le `kubelet`:
 
 ```bash
 systemctl enable --now kubelet
 ```
 
 {{< note >}}
-The Flatcar Container Linux distribution mounts the `/usr` directory as a read-only filesystem.
-Before bootstrapping your cluster, you need to take additional steps to configure a writable directory.
-See the [Kubeadm Troubleshooting guide](/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/#usr-mounted-read-only/) to learn how to set up a writable directory.
+La distribution Flatcar Container Linux monte le dossier `/usr` en tant que système de fichiers en lecture seule.
+Avant de créer votre cluster, vous devez réaliser des étapes supplémentaires pour rendre ce dossier inscriptible.
+Consultez le [guide de dépannage Kubeadm](/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/#usr-mounted-read-only/) afin d'autoriser l'écriture dans ce dossier.
 {{< /note >}}
 {{% /tab %}}
 {{< /tabs >}}
@@ -276,12 +276,12 @@ See the [Kubeadm Troubleshooting guide](/docs/setup/production-environment/tools
 
 Le kubelet va désormais redémarrer en boucle, en attendant que kubeadm lui donne des instructions supplémentaires.
 
-## Configure cgroup driver used by kubelet on control-plane node
+## Configure le driver cgroup utilisé par le kubelet sur le noeud du plan de contrôle
 
-When using Docker, kubeadm will automatically detect the cgroup driver for the kubelet
-and set it in the `/var/lib/kubelet/config.yaml` file during runtime.
+Quand vous utilisez Docker, kubeadm détectera automatiquement le driver cgroup pour le kubelet
+et le configurera directement dans le fichier `/var/lib/kubelet/config.yaml` lors de l'éxecution.
 
-If you are using a different CRI, you must pass your `cgroupDriver` value to `kubeadm init`, like so:
+Si vous utilisez un CRI différent, vous devez passer la valeur `cgroupDriver` à la commande `kubeadm init` de cette manière :
 
 ```yaml
 apiVersion: kubelet.config.k8s.io/v1beta1
@@ -289,33 +289,32 @@ kind: KubeletConfiguration
 cgroupDriver: <value>
 ```
 
-For further details, please read [Using kubeadm init with a configuration file](/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file).
+Pour plus d'informations, rendez vous sur la pahe [utiliser kubeadm init avec un fichier de configuration](/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file).
 
-Please mind, that you **only** have to do that if the cgroup driver of your CRI
-is not `cgroupfs`, because that is the default value in the kubelet already.
+Il faut noter que vous devez réaliser ce changement **seulement** si le driver cgroup de votre CRI
+n'est pas `cgroupfs`, car c'est déjà la valeur par défaut du kubelet.
 
 {{< note >}}
-Since `--cgroup-driver` flag has been deprecated by kubelet, if you have that in `/var/lib/kubelet/kubeadm-flags.env`
-or `/etc/default/kubelet`(`/etc/sysconfig/kubelet` for RPMs), please remove it and use the KubeletConfiguration instead
-(stored in `/var/lib/kubelet/config.yaml` by default).
+Vu que le flag `--cgroup-driver` est désormais déprécié par le kubelet, si il est présent dans `/var/lib/kubelet/kubeadm-flags.env`
+ou dans `/etc/default/kubelet`(`/etc/sysconfig/kubelet` for RPMs), vous devez le retirer et le remplacer par KubeletConfiguration
+(présent dans `var/lib/kubelet/config.yaml` par défaut).
 {{< /note >}}
 
-Restarting the kubelet is required:
+Le redémarrage du kubelet est nécessaire:
 
 ```bash
 systemctl daemon-reload
 systemctl restart kubelet
 ```
 
-The automatic detection of cgroup driver for other container runtimes
-like CRI-O and containerd is work in progress.
-
+La détection automatique du driver cgroup pour les autres environnements 
+d'éxecution de conteneurs est en cours d'implémentation.
 
 ## Troubleshooting
 
-If you are running into difficulties with kubeadm, please consult our [troubleshooting docs](/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/).
+Si vous rencontrez des difficultés avec kubeadm, consultez le [guide de dépanage](/docs/setup/production-environment/tools/kubeadm/troubleshooting-kubeadm/).
 
 ## {{% heading "whatsnext" %}}
 
 
-* [Using kubeadm to Create a Cluster](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
+* [Utiliser kubeadm pour créer un Cluster](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
