@@ -5,58 +5,57 @@ weight: 10
 card:
   name: setup
   weight: 20
-  title: Install the kubeadm setup tool
+  title: Installer l'outil kubeadm
 ---
 
 <!-- overview -->
 
-<img src="https://raw.githubusercontent.com/kubernetes/kubeadm/master/logos/stacked/color/kubeadm-stacked-color.png" align="right" width="150px">This page shows how to install the `kubeadm` toolbox.
-For information how to create a cluster with kubeadm once you have performed this installation process, see the [Using kubeadm to Create a Cluster](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/) page.
+<img src="https://raw.githubusercontent.com/kubernetes/kubeadm/master/logos/stacked/color/kubeadm-stacked-color.png" align="right" width="150px">Cette page présente le processus d'installation de l'outil `kubeadm`.
+Pour savoir comment créer un cluster avec kubeadm une fois l'installation terminée, rendez vous sur la page [Utiliser kubeadm pour créer un Cluster](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/).
 
 
 
 ## {{% heading "prerequisites" %}}
 
 
-* One or more machines running one of:
+* Une ou plusieurs machines éxecutant:
   - Ubuntu 16.04+
   - Debian 9+
   - CentOS 7
   - Red Hat Enterprise Linux (RHEL) 7
   - Fedora 25+
   - HypriotOS v1.0.1+
-  - Flatcar Container Linux (tested with 2512.3.0)
-* 2 GB or more of RAM per machine (any less will leave little room for your apps)
-* 2 CPUs or more
-* Full network connectivity between all machines in the cluster (public or private network is fine)
-* Unique hostname, MAC address, and product_uuid for every node. See [here](#verify-mac-address) for more details.
-* Certain ports are open on your machines. See [here](#check-required-ports) for more details.
-* Swap disabled. You **MUST** disable swap in order for the kubelet to work properly.
+  - Flatcar Container Linux (testé avec 2512.3.0)
+* 2 GB de RAM ou plus par machine (une valeur en deçà ne laissera pas assez de ressources pour vos applications)
+* 2 CPUs ou plus
+* Connectivité réseau complète entre toutes les machines du cluster (que le réseau soit privé ou publique)
+* Hostname, adresse MAC et product_uuid unique pour chaque noeud. Plus d'informations [ici](#verify-mac-address).
+* Les ports requis sont ouverts sur vos machines. Plus d'informations [ici](#check-required-ports)
+* Swap désactivé. Il est NÉCESSAIRE que le swap soit désactivé afin que le kubelet fonctionne correctement.
 
 
 
 <!-- steps -->
 
-## Verify the MAC address and product_uuid are unique for every node {#verify-mac-address}
+## Vérifier l'unicité que l'adresse MAC et du product_uuid pour chaque noeud {#verify-mac-address}
 
-* You can get the MAC address of the network interfaces using the command `ip link` or `ifconfig -a`
-* The product_uuid can be checked by using the command `sudo cat /sys/class/dmi/id/product_uuid`
+* Vous pouvez obtenir l'adresse MAC de l'interface réseau via les commandes `ip link` ou `ifconfig -a`
+* Le product_uuid peut être obtenu via la commande `sudo cat /sys/class/dmi/id/product_uuid`
 
-It is very likely that hardware devices will have unique addresses, although some virtual machines may have
-identical values. Kubernetes uses these values to uniquely identify the nodes in the cluster.
-If these values are not unique to each node, the installation process
-may [fail](https://github.com/kubernetes/kubeadm/issues/31).
+Il est très probable que des machines physiques aient des adresses uniques, cependant certains machines virtuelles 
+peuvent avoir des valeurs identiques. Kubernetes utilise ces valeurs pour identifier les noeuds du cluster.
+Si ces valeurs ne sont pas uniques pour chaque noeud, le processus d'installation peut [échouer](https://github.com/kubernetes/kubeadm/issues/31)
 
-## Check network adapters
+## Vérifier les adaptateurs réseau
 
-If you have more than one network adapter, and your Kubernetes components are not reachable on the default
-route, we recommend you add IP route(s) so Kubernetes cluster addresses go via the appropriate adapter.
+Si vous avez plus d'un adaptateur réseau, et vos composants de Kubernetes ne sont pas accessibles via la route par défaut,
+nous vous recommandons d'ajouter la ou les routes pour que les addresses IP soient routé par le bon adaptateur.
 
-## Letting iptables see bridged traffic
+## Activer le traffic par pont (bridged) sur iptables
 
-Make sure that the `br_netfilter` module is loaded. This can be done by running `lsmod | grep br_netfilter`. To load it explicitly call `sudo modprobe br_netfilter`.
+Assurez vous que le module `br_netfilter` est chargé. Vous pouvez le faire via la commande `lsmod | grep br_netfilter`. Pour charger explicitement le module, utilisez `sudo modprobe br_netfilter`.
 
-As a requirement for your Linux Node's iptables to correctly see bridged traffic, you should ensure `net.bridge.bridge-nf-call-iptables` is set to 1 in your `sysctl` config, e.g.
+Pour que iptables puisse voir le trafic par pont sur vos noeuds Linux, vous devez vous assurez que `net.bridge.bridge-nf-call-iptables` soit bien à la valeur 1 dans votre config `sysctl`, par exemple :
 
 ```bash
 cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
@@ -66,118 +65,116 @@ EOF
 sudo sysctl --system
 ```
 
-For more details please see the [Network Plugin Requirements](/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/#network-plugin-requirements) page.
+Pour plus de d'informations, consultez la page [Pré-requis plugin réseau](/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/#network-plugin-requirements).
 
-## Check required ports
+## Vérifier les ports
 
-### Control-plane node(s)
+### Noeud(s) du plan de contrôle
 
-| Protocol | Direction | Port Range | Purpose                 | Used By                   |
-|----------|-----------|------------|-------------------------|---------------------------|
-| TCP      | Inbound   | 6443*      | Kubernetes API server   | All                       |
-| TCP      | Inbound   | 2379-2380  | etcd server client API  | kube-apiserver, etcd      |
-| TCP      | Inbound   | 10250      | Kubelet API             | Self, Control plane       |
-| TCP      | Inbound   | 10251      | kube-scheduler          | Self                      |
-| TCP      | Inbound   | 10252      | kube-controller-manager | Self                      |
+| Protocole | Direction | Plage de ports | Utilisation             | Utilisé par                |
+|-----------|-----------|----------------|-------------------------|----------------------------|
+| TCP       | Entrée    | 6443*          | API Kubernetes          | Tous                       |
+| TCP       | Entrée    | 2379-2380      | serveur etdc api client | kube-apiserver, etcd       |
+| TCP       | Entrée    | 10250          | API Kubelet             | Lui même, plan de contrôle |
+| TCP       | Entrée    | 10251          | kube-scheduler          | Lui même                   |
+| TCP       | Entrée    | 10252          | kube-controller-manager | Lui même                   |
 
-### Worker node(s)
+### Noeud(s) de travail
 
-| Protocol | Direction | Port Range  | Purpose               | Used By                 |
-|----------|-----------|-------------|-----------------------|-------------------------|
-| TCP      | Inbound   | 10250       | Kubelet API           | Self, Control plane     |
-| TCP      | Inbound   | 30000-32767 | NodePort Services†    | All                     |
+| Protocole | Direction | Plage de ports  | Utilisation           | Utilisé par                |
+|-----------|-----------|-----------------|-----------------------|----------------------------|
+| TCP       | Entrée    | 10250           | API Kubelet           | Lui même, plan de contrôle |
+| TCP       | Entrée    | 30000-32767     | Services NodePort†    | All                        |
 
-† Default port range for [NodePort Services](/docs/concepts/services-networking/service/).
+† Plage de ports par défaut pour les [Services NodePort](/docs/concepts/services-networking/service/).
 
-Any port numbers marked with * are overridable, so you will need to ensure any
-custom ports you provide are also open.
+Les ports marqués d'une * sont modifiables, vous devez donc vous assurer que 
+chaque port personalisé que vous indiquez soit ouverts également.
 
-Although etcd ports are included in control-plane nodes, you can also host your own
-etcd cluster externally or on custom ports.
+Bien que les ports etcd soient inclus dans les noeuds du plan de contrôle, vous pouvez également
+héberger votre propre cluster etcd à l'extérieur ou sur des ports personalisés.
 
-The pod network plugin you use (see below) may also require certain ports to be
-open. Since this differs with each pod network plugin, please see the
-documentation for the plugins about what port(s) those need.
+Le plugin du réseau de pod que vous utilisez (voir ci-dessous) peut également nécessiter l'ouverture
+de certains ports. Puisque cela dépend du plugin réseau, veuillez consulter la 
+documentation pour le plugin vous concernant.
 
-## Installing runtime {#installing-runtime}
+## Installer l'environnement d'éxecution des conteneurs {#installing-runtime}
 
-To run containers in Pods, Kubernetes uses a
+Pour éxecuter des conteneurs dans les Pods, Kubernetes utilise un
 {{< glossary_tooltip term_id="container-runtime" text="container runtime" >}}.
 
 {{< tabs name="container_runtime" >}}
-{{% tab name="Linux nodes" %}}
+{{% tab name="noeuds Linux" %}}
 
-By default, Kubernetes uses the
+Par défaut, Kubernetes utilise la
 {{< glossary_tooltip term_id="cri" text="Container Runtime Interface">}} (CRI)
-to interface with your chosen container runtime.
+pour s'interfacer avec votre environnement d'éxecution.
 
-If you don't specify a runtime, kubeadm automatically tries to detect an installed
-container runtime by scanning through a list of well known Unix domain sockets.
-The following table lists container runtimes and their associated socket paths:
+Si vous ne spécifiez pas d'environnement, kubeadm va automatiquement essayer de détecter
+un environnement installé en scannant une list de sockets Unix bien définie.
+Le tableau suivant liste les environnements et le chemin de leur socket associé :
 
 {{< table caption = "Container runtimes and their socket paths" >}}
-| Runtime    | Path to Unix domain socket        |
-|------------|-----------------------------------|
-| Docker     | `/var/run/docker.sock`            |
-| containerd | `/run/containerd/containerd.sock` |
-| CRI-O      | `/var/run/crio/crio.sock`         |
+| Environnement | Chemin du socket Unix             |
+|---------------|-----------------------------------|
+| Docker        | `/var/run/docker.sock`            |
+| containerd    | `/run/containerd/containerd.sock` |
+| CRI-O         | `/var/run/crio/crio.sock`         |
 {{< /table >}}
 
 <br />
-If both Docker and containerd are detected, Docker takes precedence. This is
-needed because Docker 18.09 ships with containerd and both are detectable even if you only
-installed Docker.
-If any other two or more runtimes are detected, kubeadm exits with an error.
+Si à la fois Docker et containerd sont détectés, Docker sera utilisé en priorité.
+Cela est rendu nécessaire car Docker 18.09 contient également containerd, et sont tous deux
+détectables même si seul Docker est installé.
+Si d'autres environnement sont également détectés, kubeadm retournera une erreur.
 
-The kubelet integrates with Docker through the built-in `dockershim` CRI implementation.
+Le kubelet s'interface à Docker via l'implémentation CRI intégrée `dockershim`.
 
-See [container runtimes](/docs/setup/production-environment/container-runtimes/)
-for more information.
+Pour plus d'informations, rendez vous sur la page [environnement d'éxecution des conteneurs](/docs/setup/production-environment/container-runtimes/)
 {{% /tab %}}
-{{% tab name="other operating systems" %}}
-By default, kubeadm uses {{< glossary_tooltip term_id="docker" >}} as the container runtime.
-The kubelet integrates with Docker through the built-in `dockershim` CRI implementation.
+{{% tab name="autres systèmes d'exploitation" %}}
+Par défaut, kubeadm utilise {{< glossary_tooltip term_id="docker" >}} comme environnement d'éxecution.
 
-See [container runtimes](/docs/setup/production-environment/container-runtimes/)
-for more information.
+Le kubelet s'interface à Docker via l'implémentation CRI intégrée `dockershim`.
+
+Pour plus d'informations, rendez vous sur la page [environnement d'éxecution des conteneurs](/docs/setup/production-environment/container-runtimes/)
 {{% /tab %}}
 {{< /tabs >}}
 
 
-## Installing kubeadm, kubelet and kubectl
+## Installer kubeadm, kubelet et kubectl
 
-You will install these packages on all of your machines:
+Vous allez installer les logiciels suivants sur votre machine :
 
-* `kubeadm`: the command to bootstrap the cluster.
+* `kubeadm`: la commande pour créer votre cluster.
 
-* `kubelet`: the component that runs on all of the machines in your cluster
-    and does things like starting pods and containers.
+* `kubelet`: le composant qui s'éxecute sur toutes les machines de votre cluster
+    et qui est chargé de démarrer les pods et les conteneurs.
 
-* `kubectl`: the command line util to talk to your cluster.
+* `kubectl`: l'utilitaire en ligne de commande pour gérer votre cluster.
 
-kubeadm **will not** install or manage `kubelet` or `kubectl` for you, so you will
-need to ensure they match the version of the Kubernetes control plane you want
-kubeadm to install for you. If you do not, there is a risk of a version skew occurring that
-can lead to unexpected, buggy behaviour. However, _one_ minor version skew between the
-kubelet and the control plane is supported, but the kubelet version may never exceed the API
-server version. For example, kubelets running 1.7.0 should be fully compatible with a 1.8.0 API server,
-but not vice versa.
+kubeadm **n'installera pas** ou ne gérera le `kubelet` ou `kubectl` pour vous, vous devrez donc
+vous assurer que leur version soit celle du plan de contrôle que vous souhaitez installer.
+Si vous ne le faite pas, il y a un risque d'incompatibilité de versions, qui peut mener à un comportement 
+indéfinis et erratique du cluster. Cependant, _une_ différence de version mineure entre le kubelet et le plan de contrôle
+est accepté, mais la version du kubelet ne peut jamais être supérieure à la version du serveur d'API.
+Par exemple, les kubelets exécutant la version 1.7.0 seront entièrement compatibles avec la verion 1.8.0 du serveur d'API,
+mais le contraire ne sera pas possible.
 
-For information about installing `kubectl`, see [Install and set up kubectl](/docs/tasks/tools/install-kubectl/).
+Pour plus d'informations sur l'installation de `kubectl`, rendez vous sur la page [installer et configurer kubectl](/docs/tasks/tools/install-kubectl/).
 
 {{< warning >}}
-These instructions exclude all Kubernetes packages from any system upgrades.
-This is because kubeadm and Kubernetes require
-[special attention to upgrade](/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/).
+Ces instructions bloquent les paquets Kubernetes des mises à jour système.
+Cela est nécessaire car kubeadm et Kubernetes requirents une [attention particulière pour les mises à jour](/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/).
 {{</ warning >}}
 
-For more information on version skews, see:
+Pour plus d'informations sur les comptabilité de versions, rendez vous sur :
 
 * Kubernetes [version and version-skew policy](/docs/setup/release/version-skew-policy/)
 * Kubeadm-specific [version skew policy](/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#version-skew-policy)
 
 {{< tabs name="k8s_install" >}}
-{{% tab name="Ubuntu, Debian or HypriotOS" %}}
+{{% tab name="Ubuntu, Debian ou HypriotOS" %}}
 ```bash
 sudo apt-get update && sudo apt-get install -y apt-transport-https curl
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
@@ -189,7 +186,7 @@ sudo apt-get install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
 ```
 {{% /tab %}}
-{{% tab name="CentOS, RHEL or Fedora" %}}
+{{% tab name="CentOS, RHEL ou Fedora" %}}
 ```bash
 cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
@@ -202,7 +199,7 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cl
 exclude=kubelet kubeadm kubectl
 EOF
 
-# Set SELinux in permissive mode (effectively disabling it)
+# Passez SELinux en mode permissif (ce qui le rendra inactif)
 sudo setenforce 0
 sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
 
@@ -220,7 +217,7 @@ sudo systemctl enable --now kubelet
   - You can leave SELinux enabled if you know how to configure it but it may require settings that are not supported by kubeadm.
 
 {{% /tab %}}
-{{% tab name="Fedora CoreOS or Flatcar Container Linux" %}}
+{{% tab name="Fedora CoreOS ou Flatcar Container Linux" %}}
 Install CNI plugins (required for most pod network):
 
 ```bash
@@ -277,8 +274,7 @@ See the [Kubeadm Troubleshooting guide](/docs/setup/production-environment/tools
 {{< /tabs >}}
 
 
-The kubelet is now restarting every few seconds, as it waits in a crashloop for
-kubeadm to tell it what to do.
+Le kubelet va désormais redémarrer en boucle, en attendant que kubeadm lui donne des instructions supplémentaires.
 
 ## Configure cgroup driver used by kubelet on control-plane node
 
